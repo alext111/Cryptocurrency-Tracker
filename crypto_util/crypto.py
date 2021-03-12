@@ -14,16 +14,17 @@ class CryptoApp():
             password='testpw')
         return db
 
+    '''
     def addCoin(self, coin):
         db = self.connectDB()
         cursor = db.cursor()
 
         # queries to check if data columns for entered cryptocurrency exist, create if not already existing
-        checkExistingPrice = 'ALTER TABLE crypto_table ADD COLUMN IF NOT EXISTS ' + coin + '_price MONEY;'
-        checkExistingBalance = 'ALTER TABLE crypto_table ADD COLUMN IF NOT EXISTS ' + coin + '_balance MONEY;'
-        checkExistingInitial = 'ALTER TABLE crypto_table ADD COLUMN IF NOT EXISTS ' + coin + '_initial MONEY;'
-        checkExistingChange = 'ALTER TABLE crypto_table ADD COLUMN IF NOT EXISTS ' + coin + '_change DECIMAL(5,2);'
-        checkExistingCoins = 'ALTER TABLE crypto_table ADD COLUMN IF NOT EXISTS ' + coin + '_coins DECIMAL(12,6);'
+        checkExistingPrice = 'ALTER TABLE "cryptoFront_coininfo" ADD COLUMN IF NOT EXISTS ' + coin + '_price MONEY;'
+        checkExistingBalance = 'ALTER TABLE "cryptoFront_coininfo" ADD COLUMN IF NOT EXISTS ' + coin + '_balance MONEY;'
+        checkExistingInitial = 'ALTER TABLE "cryptoFront_coininfo" ADD COLUMN IF NOT EXISTS ' + coin + '_initial MONEY;'
+        checkExistingChange = 'ALTER TABLE "cryptoFront_coininfo" ADD COLUMN IF NOT EXISTS ' + coin + '_change DECIMAL(5,2);'
+        checkExistingCoins = 'ALTER TABLE "cryptoFront_coininfo" ADD COLUMN IF NOT EXISTS ' + coin + '_coins DECIMAL(12,6);'
 
         # try checking of column for entered cryptocurrency exists, rollback if error occurs
         try:
@@ -40,13 +41,34 @@ class CryptoApp():
 
         cursor.close()
         db.close()
+    '''
+
+    def addCoinRow(self, coin):
+        db = self.connectDB()
+        cursor = db.cursor()
+
+        #query to check if row with coin name already exists, else add row
+        checkExistingName = """INSERT INTO "cryptoFront_coininfo"(name) SELECT '""" + coin + """' WHERE NOT EXISTS (SELECT 1 FROM "cryptoFront_coininfo" WHERE name = '""" + coin + "');"
+        print(checkExistingName)
+
+        # try checking of column for entered cryptocurrency exists, rollback if error occurs
+        try:
+            cursor.execute(checkExistingName)
+            db.commit()
+            print('Rows successfully checked')
+        except:
+            print('Error in row checking')
+            db.rollback()
+
+        cursor.close()
+        db.close()
 
     def fillEmptyRow(self, coin):
         db = self.connectDB()
         cursor = db.cursor()
 
         # queries to check if data columns for entered cryptocurrency exist, create if not already existing
-        getRows = 'SELECT json_agg(crypto_table) FROM crypto_table;'
+        getRows = """SELECT json_agg("cryptoFront_coininfo") FROM "cryptoFront_coininfo" where name = '""" + coin + "';"
 
         # try checking of column for entered cryptocurrency exists, rollback if error occurs
         try:
@@ -62,8 +84,9 @@ class CryptoApp():
 
         print(data)
         for columnName in data:
+            print(columnName)
             if data[columnName] == None:
-                query = 'UPDATE crypto_table SET ' + columnName + ' = 0;'
+                query = 'UPDATE "cryptoFront_coininfo" SET ' + columnName + " = 0 WHERE name = '" + coin + "';"
                 try:
                     cursor.execute(query)
                     db.commit()
@@ -80,9 +103,9 @@ class CryptoApp():
         db = self.connectDB()
         cursor = db.cursor()
 
-        priceQuery = 'SELECT ' + coin + '_balance FROM crypto_table;'
+        balanceQuery = """SELECT balance FROM "cryptoFront_coininfo" WHERE name = '""" + coin + "';"
         try:
-            cursor.execute(priceQuery)
+            cursor.execute(balanceQuery)
             balance = cursor.fetchall()
             db.commit()
             print('Balance successfully obtained from database')
@@ -102,7 +125,7 @@ class CryptoApp():
         db = self.connectDB()
         cursor = db.cursor()
 
-        coinQuery = 'SELECT ' + coin + '_coins FROM crypto_table;'
+        coinQuery = """SELECT coins FROM "cryptoFront_coininfo" WHERE name = '""" + coin + "';"
         try:
             cursor.execute(coinQuery)
             numCoins = cursor.fetchall()
@@ -119,23 +142,23 @@ class CryptoApp():
         cursor.close()
         db.close()
 
-    def getInitial(self, coin):
-        # obtain initial deposit from database
+    def getDeposit(self, coin):
+        # obtain deposit from database
         db = self.connectDB()
         cursor = db.cursor()
 
-        initialQuery = 'SELECT ' + coin + '_initial FROM crypto_table;'
+        depositQuery = """SELECT deposit FROM "cryptoFront_coininfo" WHERE name = '""" + coin + "';"
         try:
-            cursor.execute(initialQuery)
-            initial = cursor.fetchall()
+            cursor.execute(depositQuery)
+            deposit = cursor.fetchall()
             db.commit()
-            print('Initial deposit successfully obtained from database')
-            print(initial[0][0])
-            print(type(initial[0][0]))
-            initial = self.currencyToNum(initial[0][0])
-            return initial
+            print('Deposit successfully obtained from database')
+            print(deposit[0][0])
+            print(type(deposit[0][0]))
+            deposit = self.currencyToNum(deposit[0][0])
+            return deposit
         except:
-            print('Error in initial deposit check in database')
+            print('Error in deposit check in database')
             db.rollback()
 
         cursor.close()
@@ -157,7 +180,7 @@ class CryptoApp():
         db = self.connectDB()
         cursor = db.cursor()
 
-        balanceQuery = 'UPDATE crypto_table SET ' + coin + '_balance = ' + str(balance) + ';'
+        balanceQuery = 'UPDATE "cryptoFront_coininfo" SET balance = ' + str(balance) + " WHERE name = '" + coin + "';"
         try:
             cursor.execute(balanceQuery)
             db.commit()
@@ -177,7 +200,7 @@ class CryptoApp():
         db = self.connectDB()
         cursor = db.cursor()
 
-        changeQuery = 'UPDATE crypto_table SET ' + coin + '_change = ' + str(change) + ';'
+        changeQuery = 'UPDATE "cryptoFront_coininfo" SET change = ' + str(change) + " WHERE name = '" + coin + "';"
         try:
             cursor.execute(changeQuery)
             db.commit()
@@ -190,14 +213,14 @@ class CryptoApp():
         db.close()
 
     def updateCoins(self, coin, difference):
-        # updates database initial deposit value with current value
+        # updates database coin value with current value
         coins = self.calculateCoins(coin, difference)
         print(coins)
 
         db = self.connectDB()
         cursor = db.cursor()
 
-        coinsQuery = 'UPDATE crypto_table SET ' + coin + '_coins = ' + str(coins) + ';'
+        coinsQuery = 'UPDATE "cryptoFront_coininfo" SET coins = ' + str(coins) + " WHERE name = '" + coin + "';"
         try:
             cursor.execute(coinsQuery)
             db.commit()
@@ -209,21 +232,21 @@ class CryptoApp():
         cursor.close()
         db.close()
 
-    def updateInitial(self, coin, difference):
-        # updates database initial deposit value with current value
-        initial = self.calculateInitial(coin, difference)
-        print(initial)
+    def updateDeposit(self, coin, difference):
+        # updates database deposit value with current value
+        deposit = self.calculateDeposit(coin, difference)
+        print(deposit)
 
         db = self.connectDB()
         cursor = db.cursor()
 
-        initialQuery = 'UPDATE crypto_table SET ' + coin + '_initial = ' + str(initial) + ';'
+        depositQuery = 'UPDATE "cryptoFront_coininfo" SET deposit = ' + str(deposit) + " WHERE name = '" + coin + "';"
         try:
-            cursor.execute(initialQuery)
+            cursor.execute(depositQuery)
             db.commit()
-            print('Initial deposit successfully updated')
+            print('Deposit successfully updated')
         except:
-            print('Error in initial deposit update')
+            print('Error in deposit update')
             db.rollback()
 
         cursor.close()
@@ -237,8 +260,9 @@ class CryptoApp():
         db = self.connectDB()
         cursor = db.cursor()
 
-        priceQuery = 'UPDATE crypto_table SET ' + coin + '_price = ' + str(price) + ';'
+        priceQuery = 'UPDATE "cryptoFront_coininfo" SET price = ' + str(price) + " WHERE name = '" + coin + "';"
         try:
+
             cursor.execute(priceQuery)
             db.commit()
             print('Price successfully updated')
@@ -267,23 +291,23 @@ class CryptoApp():
         print(coins)
         return coins
 
-    def calculateInitial(self, coin, difference):
-        # obtain initial deposit from db and calculate new initial based on deposit/withdrawal
-        initial = self.getInitial(coin)
-        initial = initial + difference
-        if initial < 0:
-            initial = 0
-        print(initial)
-        return initial
+    def calculateDeposit(self, coin, difference):
+        # obtain deposit from db and calculate new deposit based on deposit/withdrawal
+        deposit = self.getDeposit(coin)
+        deposit = deposit + difference
+        if deposit < 0:
+            deposit = 0
+        print(deposit)
+        return deposit
 
     def calculatePercentage(self, coin):
-        #obtain initial deposit from db and balance to calculate percent change
-        initial = self.getInitial(coin)
+        #obtain deposit from db and balance to calculate percent change
+        deposit = self.getDeposit(coin)
         balance = self.calculateBalance(coin)
-        if initial == 0:
+        if deposit == 0:
             percentage = 0
         else:
-            percentage = (balance - initial)/initial * 100
+            percentage = (balance - deposit)/deposit * 100
         print(percentage)
         return percentage
 
@@ -295,16 +319,12 @@ class CryptoApp():
         return currency
 
 #testing section
-'''
 app = CryptoApp()
-app.addCoin("bitcoin")
-app.fillEmptyRow("bitcoin")
-app.updatePrice("bitcoin")
-#app.updateInitial("bitcoin", 10000000)
-#app.updateCoins("bitcoin", 10000000)
-app.updateBalance("bitcoin")
-app.updateChange("bitcoin")
-app.addCoin("ethereum")
-app.fillEmptyRow("ethereum")
-app.updatePrice("ethereum")
-'''
+app.addCoinRow('bitcoin')
+app.fillEmptyRow('bitcoin')
+app.updatePrice('bitcoin')
+app.getDeposit('bitcoin')
+app.updateDeposit('bitcoin',10000)
+app.updateCoins('bitcoin',10000)
+app.updateBalance('bitcoin')
+app.updateChange('bitcoin')
