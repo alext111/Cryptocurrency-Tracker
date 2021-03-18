@@ -8,7 +8,7 @@
 
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Crypto</title>
+        <title>Cryptocurrency Tables</title>
 
         <link rel="stylesheet" href="https://unpkg.com/tachyons@4.10.0/css/tachyons.min.css"/>
 
@@ -32,6 +32,13 @@
         tr:nth-child(even) {background-color: #f2f2f2}
 
     </style>
+
+    <h1>Cryptocurrency Tables</h1>
+
+    <form method="post" id="deposit_form">
+          {% csrf_token %}
+          <input type="submit" value="Update">
+    </form>
 
     <table>
 
@@ -59,13 +66,13 @@
 
             <tr>
 
-                <td>{{ data.id }}</td>
+                <td>{{ data.name }}</td>
 
                 <td>{{ data.price }}</td>
 
                 <td>{{ data.balance }}</td>
 
-                <td>{{ data.initial }}</td>
+                <td>{{ data.deposit }}</td>
 
                 <td>{{ data.change }}</td>
 

@@ -20,4 +20,6 @@ from . import views
 urlpatterns = [
     path('', views.main, name='main'),
     path('crypto_table/', views.crypto_tables, name='crypto_tables'),
+    path('deposit/', views.deposit_page, name='deposit_page'),
+    path('withdraw/', views.withdraw_page, name='withdraw_page'),
 ]
